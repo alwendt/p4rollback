@@ -1,0 +1,34 @@
+#!/bin/bash
+
+# source: https://community.perforce.com/s/article/3474
+
+prevcl=`expr $1 - 1`
+echo previous $prevcl
+
+p4 sync @$prevcl
+
+# open all of the edited files
+for name in `p4 describe -s $1 | egrep '#[0-9]+ edit$' | cut -f 1 -d# | colrm 1 4`
+do
+    echo "reverting edits to $name"
+    p4 edit $name
+done
+
+# add all of the deleted files
+for name in `p4 describe -s $1 | egrep '#[0-9]+ delete$' | cut -f 1 -d# | colrm 1 4`
+do
+    echo "restoring deleted file $name"
+    p4 add $name
+done
+
+p4 sync @$1
+p4 resolve -ay
+p4 sync
+p4 resolve
+
+# delete all of the added files
+for name in `p4 describe -s $1 | egrep '#[0-9]+ add$' | cut -f 1 -d# | colrm 1 4`
+do
+    echo "removing added file $name"
+    p4 delete $name
+done
